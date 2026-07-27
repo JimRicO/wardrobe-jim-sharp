@@ -4,7 +4,8 @@
   "dependencies": {
     "sharp": "^0.32.0",
     "@supabase/supabase-js": "^2.38.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "ws": "^8.0.0"
   },
   "engines": {
     "node": "20.x"
