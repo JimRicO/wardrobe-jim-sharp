@@ -1,7 +1,11 @@
+const express = require("express");
 const sharp = require("sharp");
 const { v4: uuid } = require("uuid");
 const { createClient } = require("@supabase/supabase-js");
 const ws = require("ws");
+
+const app = express();
+app.use(express.json());
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -9,21 +13,14 @@ const supabase = createClient(
   { realtime: { transport: ws } }
 );
 
-module.exports = async (req, res) => {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+app.post("/api/process-image", async (req, res) => {
   const { imageUrl, operations } = req.body;
-
   if (!imageUrl || !operations || !Array.isArray(operations)) {
     return res.status(400).json({ error: "Missing imageUrl or operations" });
   }
 
   try {
     const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-
     const buffer = await response.arrayBuffer();
     const imageBuffer = Buffer.from(buffer);
 
@@ -50,7 +47,7 @@ module.exports = async (req, res) => {
       .from("garment-images")
       .upload(fileName, pngBuffer, { contentType: "image/png", upsert: false });
 
-    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+    if (uploadError) throw new Error(uploadError.message);
 
     const { data: signedData } = await supabase.storage
       .from("garment-images")
@@ -63,6 +60,9 @@ module.exports = async (req, res) => {
       fileName
     });
   } catch (error) {
-    res.status(500).json({ error: error.message || "Image processing failed" });
+    res.status(500).json({ error: error.message });
   }
-};
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
